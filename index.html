@@ -7,6 +7,8 @@
     <title>Document</title>
   </head>
   <body>
+    <p id="t1"></p>
+    <p id="t2"></p>
     <script>
       let activeEffect;
 
@@ -14,26 +16,52 @@
         activeEffect = fn;
         fn();
       }
-      const bucket = new Set();
+      const bucket = new WeakMap();
 
-      const data = { text: "hello world" };
+      const data = { text: "hello world", age: 19 };
 
+      // 追踪 收集
+      function track(target, key) {
+        // WeakMap: target--> Map 构成
+        //  Map: key-->Set 构成
+        if (!activeEffect) return;
+        let depsMap = bucket.get(target);
+
+        if (!depsMap) {
+          bucket.set(target, (depsMap = new Map()));
+        }
+        let deps = depsMap.get(key);
+        if (!deps) {
+          depsMap.set(key, (deps = new Set()));
+        }
+        deps.add(activeEffect);
+      }
+
+      // 触发 执行给更新
+      function trigger(target, key) {
+        const depsMap = bucket.get(target);
+        if (!depsMap) return;
+        const effects = depsMap.get(key);
+        effects && effects.forEach((fn) => fn());
+      }
       const obj = new Proxy(data, {
         get(target, key) {
-          activeEffect && bucket.add(activeEffect);
+          track(target, key);
           return target[key];
         },
         set(target, key, newVal) {
           target[key] = newVal;
-          bucket.forEach((fn) => fn());
+          trigger(target, key);
           return true;
         },
       });
       effect(() => {
-        document.body.innerText = obj.text;
+        document.getElementById("t1").innerText = obj.text;
+        document.getElementById("t2").innerText = obj.age;
       });
       setTimeout(() => {
         obj.text = "111";
+        obj.age = 20;
         console.log(bucket);
       }, 1000);
     </script>
