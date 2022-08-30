@@ -12,13 +12,27 @@
     <script>
       let activeEffect;
 
-      function effect(fn) {
-        activeEffect = fn;
-        fn();
-      }
       const bucket = new WeakMap();
 
-      const data = { text: "hello world", age: 19 };
+      const data = { text: "hello world", age: 19, isTrue: true };
+
+      function effect(fn) {
+        const effectFn = () => {
+          cleanup(effectFn);
+          activeEffect = effectFn;
+          fn();
+        };
+        effectFn.deps = [];
+        effectFn();
+      }
+
+      function cleanup(effectFn) {
+        for (let i = 0; i < effectFn.deps.length; i++) {
+          const deps = effectFn.deps[i];
+          deps.delete(effectFn);
+        }
+        effectFn.deps.length = 0;
+      }
 
       // 追踪 收集
       function track(target, key) {
@@ -35,6 +49,7 @@
           depsMap.set(key, (deps = new Set()));
         }
         deps.add(activeEffect);
+        activeEffect.deps.push(deps);
       }
 
       // 触发 执行给更新
@@ -42,8 +57,11 @@
         const depsMap = bucket.get(target);
         if (!depsMap) return;
         const effects = depsMap.get(key);
-        effects && effects.forEach((fn) => fn());
+        // 防止死循环
+        const effectsToTun = new Set(effects);
+        effectsToTun && effectsToTun.forEach((fn) => fn());
       }
+
       const obj = new Proxy(data, {
         get(target, key) {
           track(target, key);
@@ -56,13 +74,12 @@
         },
       });
       effect(() => {
-        document.getElementById("t1").innerText = obj.text;
-        document.getElementById("t2").innerText = obj.age;
+        document.getElementById("t1").innerText = obj.isTrue
+          ? obj.text
+          : "不是真的";
       });
       setTimeout(() => {
-        obj.text = "111";
-        obj.age = 20;
-        console.log(bucket);
+        obj.isTrue = false;
       }, 1000);
     </script>
   </body>
