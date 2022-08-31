@@ -63,9 +63,16 @@
         const depsMap = bucket.get(target);
         if (!depsMap) return;
         const effects = depsMap.get(key);
+
         // 防止死循环
-        const effectsToTun = new Set(effects);
-        effectsToTun && effectsToTun.forEach((fn) => fn());
+        const effectsToRun = new Set();
+        effects &&
+          effects.forEach((fn) => {
+            if (fn !== activeEffect) {
+              effectsToRun.add(fn);
+            }
+          });
+        effectsToRun && effectsToRun.forEach((fn) => fn());
       }
 
       const obj = new Proxy(data, {
@@ -80,17 +87,13 @@
         },
       });
       let temp1, temp2;
-      effect(function effectFn1() {
-        console.log("effectFn1执行");
-        effect(function effectFn2() {
-          console.log("effectFn2执行");
-          temp2 = obj.age;
-        });
-        temp1 = obj.text;
+      effect(function () {
+        obj.age++;
+        console.log(obj.age);
       });
-      setTimeout(() => {
-        obj.text = 'fffff';
-      }, 1000);
+      // setTimeout(() => {
+      //   obj.age = 'fffff';
+      // }, 1000);
     </script>
   </body>
 </html>
