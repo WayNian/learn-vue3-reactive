@@ -18,7 +18,7 @@
 
       const data = { text: "hello world", age: 19, isTrue: false };
 
-      function effect(fn) {
+      function effect(fn, options = {}) {
         const effectFn = () => {
           cleanup(effectFn);
           activeEffect = effectFn;
@@ -28,6 +28,7 @@
           activeEffect = effectStack[effectStack.length - 1];
         };
 
+        effectFn.options = options;
         effectFn.deps = [];
         effectFn();
       }
@@ -72,7 +73,14 @@
               effectsToRun.add(fn);
             }
           });
-        effectsToRun && effectsToRun.forEach((fn) => fn());
+        effectsToRun &&
+          effectsToRun.forEach((fn) => {
+            if (fn.options.shcheduler) {
+              fn.options.shcheduler(fn);
+            } else {
+              fn();
+            }
+          });
       }
 
       const obj = new Proxy(data, {
@@ -86,11 +94,40 @@
           return true;
         },
       });
-      let temp1, temp2;
-      effect(function () {
-        obj.age++;
-        console.log(obj.age);
-      });
+
+      const jobQueue = new Set();
+      const p = Promise.resolve();
+
+      let isFlushing = false;
+
+      function flushJob() {
+        if (isFlushing) return;
+        isFlushing = true;
+        p.then(() => {
+          jobQueue.forEach((job) => job());
+        }).finally(() => {
+          isFlushing = false;
+        });
+      }
+      effect(
+        function () {
+          console.log(obj.age);
+        },
+        {
+          shcheduler(fn) {
+            jobQueue.add(fn);
+            flushJob();
+          },
+        }
+      );
+      obj.age++;
+      obj.age++;
+      obj.age++;
+      obj.age++;
+      obj.age++;
+
+      console.log("结束了");
+
       // setTimeout(() => {
       //   obj.age = 'fffff';
       // }, 1000);
