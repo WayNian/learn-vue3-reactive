@@ -12,16 +12,22 @@
     <script>
       let activeEffect;
 
+      const effectStack = [];
+
       const bucket = new WeakMap();
 
-      const data = { text: "hello world", age: 19, isTrue: true };
+      const data = { text: "hello world", age: 19, isTrue: false };
 
       function effect(fn) {
         const effectFn = () => {
           cleanup(effectFn);
           activeEffect = effectFn;
+          effectStack.push(effectFn);
           fn();
+          effectStack.pop();
+          activeEffect = effectStack[effectStack.length - 1];
         };
+
         effectFn.deps = [];
         effectFn();
       }
@@ -73,13 +79,17 @@
           return true;
         },
       });
-      effect(() => {
-        document.getElementById("t1").innerText = obj.isTrue
-          ? obj.text
-          : "不是真的";
+      let temp1, temp2;
+      effect(function effectFn1() {
+        console.log("effectFn1执行");
+        effect(function effectFn2() {
+          console.log("effectFn2执行");
+          temp2 = obj.age;
+        });
+        temp1 = obj.text;
       });
       setTimeout(() => {
-        obj.isTrue = false;
+        obj.text = 'fffff';
       }, 1000);
     </script>
   </body>
