@@ -138,6 +138,37 @@
         return obj;
       }
 
+      function traverse(value, seen = new Set()) {
+        // 读取的为原始值或者已经被读取过了，则返回
+        if (typeof value !== "object" || value === null || seen.has(value))
+          return;
+
+        seen.add(value);
+        for (const key in value) {
+          traverse(value[key], seen);
+        }
+        return value;
+      }
+
+      function watch(source, cb) {
+        let getter;
+        if (typeof source === "function") {
+          getter = source;
+        } else {
+          getter = () => traverse(source);
+        }
+        let oldValue, newValue;
+        // 递归读取source
+        const effectFn = effect(() => getter(), {
+          lazy: true,
+          shcheduler() {
+            newValue = effectFn();
+            cb(newValue, oldValue);
+            oldValue = newValue;
+          },
+        });
+        oldValue = effectFn();
+      }
       // const effectFn = effect(() => obj.age + 20, {
       // shcheduler(fn) {
       //   jobQueue.add(fn);
@@ -145,14 +176,22 @@
       // },
       // });
 
-      const sumRes = computed(() => {
-        return obj.age + 100;
-      });
+      watch(
+        () => obj.age,
+        (newVal, oldVale) => {
+          console.log("触发了", newVal, oldVale);
+        }
+      );
 
-      effect(() => {
-        console.log("--->>", sumRes.value);
-      });
-      obj.age++
+      obj.age++;
+      // const sumRes = computed(() => {
+      //   return obj.age + 100;
+      // });
+
+      // effect(() => {
+      //   console.log("--->>", sumRes.value);
+      // });
+      // obj.age++;
       console.log(bucket);
     </script>
   </body>
