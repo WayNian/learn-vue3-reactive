@@ -23,14 +23,19 @@
           cleanup(effectFn);
           activeEffect = effectFn;
           effectStack.push(effectFn);
-          fn();
+          const res = fn();
+          console.log("🚀 ~ file: index.html ~ line 27 ~ effectFn ~ fn", fn);
           effectStack.pop();
           activeEffect = effectStack[effectStack.length - 1];
+          return res;
         };
 
         effectFn.options = options;
         effectFn.deps = [];
-        effectFn();
+        if (!options.lazy) {
+          effectFn();
+        }
+        return effectFn;
       }
 
       function cleanup(effectFn) {
@@ -109,28 +114,46 @@
           isFlushing = false;
         });
       }
-      effect(
-        function () {
-          console.log(obj.age);
-        },
-        {
-          shcheduler(fn) {
-            jobQueue.add(fn);
-            flushJob();
+
+      function computed(getter) {
+        let value;
+        let dirty = true;
+        const effectFn = effect(getter, {
+          lazy: true,
+          shcheduler() {
+            dirty = true;
+            trigger(obj, "value");
           },
-        }
-      );
-      obj.age++;
-      obj.age++;
-      obj.age++;
-      obj.age++;
-      obj.age++;
+        });
+        const obj = {
+          get value() {
+            if (dirty) {
+              value = effectFn();
+              dirty = false;
+            }
+            track(obj, "value");
+            return value;
+          },
+        };
+        return obj;
+      }
 
-      console.log("结束了");
+      // const effectFn = effect(() => obj.age + 20, {
+      // shcheduler(fn) {
+      //   jobQueue.add(fn);
+      //   flushJob();
+      // },
+      // });
 
-      // setTimeout(() => {
-      //   obj.age = 'fffff';
-      // }, 1000);
+      const sumRes = computed(() => {
+        return obj.age + 100;
+      });
+
+      effect(() => {
+        console.log("--->>", sumRes.value);
+      });
+      obj.age++
+      console.log(bucket);
     </script>
   </body>
 </html>
