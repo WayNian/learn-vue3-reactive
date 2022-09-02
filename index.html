@@ -80,8 +80,8 @@
           });
         effectsToRun &&
           effectsToRun.forEach((fn) => {
-            if (fn.options.shcheduler) {
-              fn.options.shcheduler(fn);
+            if (fn.options.scheduler) {
+              fn.options.scheduler(fn);
             } else {
               fn();
             }
@@ -120,7 +120,7 @@
         let dirty = true;
         const effectFn = effect(getter, {
           lazy: true,
-          shcheduler() {
+          scheduler() {
             dirty = true;
             trigger(obj, "value");
           },
@@ -150,7 +150,7 @@
         return value;
       }
 
-      function watch(source, cb) {
+      function watch(source, cb, options = {}) {
         let getter;
         if (typeof source === "function") {
           getter = source;
@@ -158,32 +158,41 @@
           getter = () => traverse(source);
         }
         let oldValue, newValue;
+        const job = () => {
+          newValue = effectFn();
+          cb(newValue, oldValue);
+          oldValue = newValue;
+        };
         // 递归读取source
         const effectFn = effect(() => getter(), {
           lazy: true,
-          shcheduler() {
-            newValue = effectFn();
-            cb(newValue, oldValue);
-            oldValue = newValue;
-          },
+          scheduler: job,
         });
-        oldValue = effectFn();
+
+        if (options.immediate) {
+          job();
+        } else {
+          oldValue = effectFn();
+        }
       }
       // const effectFn = effect(() => obj.age + 20, {
-      // shcheduler(fn) {
+      // scheduler(fn) {
       //   jobQueue.add(fn);
       //   flushJob();
       // },
       // });
 
       watch(
-        () => obj.age,
+        obj,
         (newVal, oldVale) => {
           console.log("触发了", newVal, oldVale);
+        },
+        {
+          immediate: true,
         }
       );
 
-      obj.age++;
+      // obj.age++;
       // const sumRes = computed(() => {
       //   return obj.age + 100;
       // });
