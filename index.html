@@ -157,9 +157,16 @@
           getter = () => traverse(source);
         }
         let oldValue, newValue;
+        let cleanup;
+        function onInvalidate(fn) {
+          cleanup = fn;
+        }
         const job = () => {
           newValue = effectFn();
-          cb(newValue, oldValue);
+          if (cleanup) {
+            cleanup();
+          }
+          cb(newValue, oldValue, onInvalidate);
           oldValue = newValue;
         };
         // 递归读取source
@@ -190,7 +197,15 @@
 
       watch(
         obj,
-        (newVal, oldVale) => {
+        async (newVal, oldVale, onInvalidate) => {
+          let expired = false;
+          onInvalidate(() => {
+            expired = true;
+          });
+          const res = await fetch("/path/to/request");
+          if (!expired) {
+            finalData = res;
+          }
           console.log("触发了", newVal, oldVale);
         },
         {
