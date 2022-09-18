@@ -1,0 +1,22 @@
+{
+  "name": "@wue/reactivity",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "buildOptions": {
+    "formats": [
+      "global",
+      "cjs",
+      "esm-bundler"
+    ]
+  },
+  "dependencies": {
+    "@wue/shared": "workspace:^1.0.0"
+  }
+}

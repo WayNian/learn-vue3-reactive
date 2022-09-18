@@ -12,6 +12,12 @@ importers:
       minimist: 1.2.6
       typescript: 4.8.3
 
+  packages/reactivity:
+    specifiers:
+      '@wue/shared': workspace:^1.0.0
+    dependencies:
+      '@wue/shared': link:../shared
+
 packages:
 
   /@esbuild/linux-loong64/0.15.7:
